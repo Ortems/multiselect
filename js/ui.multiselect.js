@@ -125,7 +125,7 @@
 					var options = that.element.find('option').not(":selected");
 					if (that.availableList.children('li:hidden').length > 1) {
 						that.availableList.children('li').each(function (i) {
-							if ($(this).is(":visible")) $(options[i - 1]).attr('selected', 'selected');
+							$(options[i - 1]).attr('selected', 'selected');
 						});
 					} else {
 						options.attr('selected', 'selected');
@@ -170,14 +170,14 @@
 		},
 		selectAll: function () {
 			if (this.enabled()) {
-				this._batchSelect(this.availableList.children('li.ui-element:visible'), true);
+				this._batchSelect(this.availableList.children('li.ui-element'), true);
 			}
 		},
 		selectNone: function () {
 			if (this.enabled()) {
 				this.count = 0;
 				this._updateCount();
-				this._batchSelect(this.selectedList.children('li.ui-element:visible'), false);
+				this._batchSelect(this.selectedList.children('li.ui-element'), false);
 			}
 		},
 		select: function (text) {
@@ -231,7 +231,7 @@
 		// used by select and deselect, etc.
 		_findItem: function (text, list) {
 			var found = null;
-			list.children('li.ui-element:visible').each(function (i, el) {
+			list.children('li.ui-element').each(function (i, el) {
 				el = $(el);
 				if (el.text().toLowerCase() === text.toLowerCase()) {
 					found = el;
@@ -264,17 +264,17 @@
 		},
 		_updateCount: function () {
 			this.selectedContainer.find('span.count').text(this.count + " " + $.ui.multiselect.locale.itemsCount);
-			if ((this.options.maxSelect != -1) && (this.options.maxSelect <= this.count)) {
+			if ((this.options.maxSelect != -1) && (this.options.maxSelect < this.count)) {
 				this.availableList.attr('disabled', 'disabled');
 				this.limitReachedMessage.show();
-				this.availableList.children('li.ui-element:visible').each(function () {
+				this.availableList.children('li.ui-element').each(function () {
 					$(this).draggable('disable');
 				}
 				);
 			} else {
 				this.availableList.removeAttr('disabled');
 				this.limitReachedMessage.hide();
-				this.availableList.children('li.ui-element:visible').each(function () {
+				this.availableList.children('li.ui-element').each(function () {
 					$(this).draggable('enable');
 				}
 				);
@@ -282,7 +282,7 @@
 		},
 		_getOptionNode: function (option) {
 			option = $(option);
-			var node = $('<li class="ui-state-default ui-element" title="' + option.text() + '"><span class="ui-icon"/>' + option.text() + '<a href="#" class="action"><span class="ui-corner-all ui-icon"/></a></li>').hide();
+			var node = $('<li class="ui-state-default ui-element"><span class="ui-icon"/>' + option.text() + '<a href="#" class="action"><span class="ui-corner-all ui-icon"/></a></li>').hide();
 			node.data('optionLink', option);
 			return node;
 		},
@@ -394,23 +394,32 @@
 				$(this).removeClass('ui-state-hover');
 			});
 		},
-		_registerAddEvents: function (elements) {
-			var that = this;
-			elements.click(function () {
-				if (!that.busy) {
-					that.busy = true;
-					if (((that.options.maxSelect != -1) && (that.options.maxSelect > that.count))
-									|| that.options.maxSelect == -1) {
-						var item = that._setSelected($(this).parent(), true);
+
+		_onClick: function(e){
+				if (!this.element[0].busy) {
+					this.busy = true;
+					if (((this.options.maxSelect != -1) && (this.options.maxSelect > this.count))
+									|| this.options.maxSelect == -1) {
+						var item = this._setSelected($(e.currentTarget).parent(), true);
 						if (item && item.data('optionLink').is(":selected")) {
-							that.count += 1;
-							that._updateCount();
+							this.count += 1;
+							this._updateCount();
 						}
 					}
 				}
-				that.busy = false;
+
+				(function (that) {
+					setTimeout(function () {
+						that.busy = false;
+					}, 20);
+				})(this);
+
 				return false;
-			});
+		},
+
+		_registerAddEvents: function (elements) {
+			var that = this;
+			elements.click(jQuery.proxy(this._onClick, this));
 
 			// make draggable
 			if (this.options.sortable) {
